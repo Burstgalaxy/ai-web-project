@@ -72,7 +72,12 @@ with tab1:
     
     with col1:
         st.write("### Нарисуй цифру (0-9)")
-        # Компонент для рисования
+        
+        # 1. Создаем уникальный ключ для холста, если его нет
+        if 'canvas_key' not in st.session_state:
+            st.session_state['canvas_key'] = "canvas_v1"
+
+        # 2. Холст (Без стандартной панели инструментов)
         canvas_result = st_canvas(
             fill_color="black",
             stroke_width=20,
@@ -81,40 +86,38 @@ with tab1:
             height=280,
             width=280,
             drawing_mode="freedraw",
-            key="canvas",
+            key=st.session_state['canvas_key'], # Ключ привязан к состоянию
+            display_toolbar=False,              # <--- ОТКЛЮЧАЕМ СТАРУЮ ПАНЕЛЬ
         )
+
+        # 3. Наша собственная красивая кнопка
+        def clear_canvas():
+            # Просто меняем ключ, и холст перерисуется заново чистым
+            import uuid
+            st.session_state['canvas_key'] = str(uuid.uuid4())
+
+        # Кнопка на всю ширину колонки
+        st.button("🗑️ ОЧИСТИТЬ ХОЛСТ", on_click=clear_canvas, type="primary", use_container_width=True)
         
     with col2:
         st.write("### Результат")
         if canvas_result.image_data is not None:
-            # Получаем изображение
             img = canvas_result.image_data.astype('uint8')
-            # Конвертируем в оттенки серого
             img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             
-            # Проверяем, не пустой ли холст
             if np.max(img_gray) > 0:
-                # Обработка как в твоем скрипте (обрезка и ресайз)
                 pts = cv2.findNonZero(img_gray)
                 x, y, w, h = cv2.boundingRect(pts)
-                
-                # Вырезаем цифру
                 im_crop = img_gray[y:y+h, x:x+w]
-                
-                # Масштабируем
                 scale = 20.0 / max(w, h)
                 im_resize = cv2.resize(im_crop, (int(w*scale), int(h*scale)))
-                
-                # Центрируем на 28x28
                 new_im = np.zeros((28, 28), np.uint8)
                 y_off = (28 - im_resize.shape[0]) // 2
                 x_off = (28 - im_resize.shape[1]) // 2
                 new_im[y_off:y_off+im_resize.shape[0], x_off:x_off+im_resize.shape[1]] = im_resize
                 
-                # Показываем, что видит робот
                 st.image(new_im, caption="Что видит сеть", width=100)
                 
-                # Предсказание
                 final = new_im.reshape(1, 28, 28, 1).astype('float32') / 255.0
                 pred = vision_model.predict(final)
                 answ = np.argmax(pred)
@@ -157,4 +160,5 @@ with tab2:
         if survival_chance > 0.5:
             st.success("Скорее всего, пассажир ВЫЖИВЕТ")
         else:
+
             st.error("К сожалению, шансы малы")
