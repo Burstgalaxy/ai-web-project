@@ -97,7 +97,7 @@ with tab1:
             st.session_state['canvas_key'] = str(uuid.uuid4())
 
         # Кнопка на всю ширину колонки
-        st.button("🗑️ ОЧИСТИТЬ ХОЛСТ", on_click=clear_canvas, type="primary", use_container_width=True)
+        st.button("🗑️ ОЧИСТИТЬ", on_click=clear_canvas, type="primary")
         
     with col2:
         st.write("### Результат")
@@ -162,3 +162,4 @@ with tab2:
         else:
 
             st.error("К сожалению, шансы малы")
+
